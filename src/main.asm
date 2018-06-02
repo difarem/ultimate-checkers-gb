@@ -33,6 +33,7 @@
 Start::
 	di			;disable interrupts
 	ld	sp,$FFFE	;set the stack to $FFFE
+
 	call WAIT_VBLANK	;wait for v-blank
 
 	ld	a,0		;
@@ -45,8 +46,20 @@ Start::
 
 	ld	a,%11100100	;load a normal palette up 11 10 01 00 - dark->light
 	ldh	[rBGP],a	;load the palette
+
+    ; draws a single white piece
+    ld  hl,$FE00
+    ld  [hl],44      ; sprite y position
+    inc hl
+    ld  [hl],28     ; sprite x position
+    inc hl
+    ld  [hl],9      ; sprite tile offset
+    inc hl
+    ld  [hl],0      ; sprite attributes
+    ld  hl,$FF48
+    ld  [hl],%11100100 ; load sprite palette
 	
-	ld	a,%10010001		;  =$91 
+	ld	a,%10010011		;  =$91 
 	ldh	[rLCDC],a	;turn on the LCD, BG, etc
 
 Loop::
@@ -82,7 +95,7 @@ CLEAR_MAP_LOOP::
 LOAD_TILES::
 	ld	hl,BOARD_TILES
 	ld	de,_VRAM
-	ld	bc,17*16 ;each tile takes 16 bytes
+	ld	bc,20*16 ;each tile takes 16 bytes
 LOAD_TILES_LOOP::
 	ld	a,[hl+]	;get a byte from our tiles, and increment.
 	ld	[de],a	;put that byte in VRAM and
@@ -91,18 +104,6 @@ LOAD_TILES_LOOP::
 	ld	a,b		;if b or c != 0,
 	or	c		;
 	jr	nz,LOAD_TILES_LOOP	;then loop.
-	ret			;done
-
-LOAD_MAP::
-	ld	hl,HELLO_MAP	;our little map
-	ld	de,_SCRN0	;where our map goes
-	ld	c,12		;since we are only loading 12 tiles
-LOAD_MAP_LOOP::
-	ld	a,[hl+]	;get a byte of the map and inc hl
-	ld	[de],a	;put the byte at de
-	inc	de		;duh...
-	dec	c		;decrement our counter
-	jr	nz,LOAD_MAP_LOOP	;and of the counter != 0 then loop
 	ret			;done
 
 LOAD_BOARD::
