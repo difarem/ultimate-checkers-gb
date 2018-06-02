@@ -14,15 +14,13 @@ OBJECTS = $(SOURCES:src/%.asm=build/%.o)
 .PHONY: all
 all: ${TARGET}
 
-build/%.o: src/%.asm build
+build/%.o: src/%.asm
+	mkdir -p build
 	$(ASM) $(ASMFLAGS) -o $@ $^
 
 $(TARGET): $(OBJECTS)
 	$(LINK) $(LINKFLAGS) -o $@ $^
 	$(FIX) $(FIXFLAGS) $@
-
-build:
-	mkdir $@
 
 .PHONY: clean
 clean:
