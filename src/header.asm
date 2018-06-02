@@ -64,7 +64,7 @@ JOYPAD_VECT:
 	DB	$BB,$BB,$67,$63,$6E,$0E,$EC,$CC,$DD,$DC,$99,$9F,$BB,$B9,$33,$3E
 
 	; $0134-$013E (Game title - up to 11 upper case ASCII characters; pad with $00)
-	DB	"HELLO WORLD"
+	DB	"CHECKERS   "
 		;0123456789A
 
 	; $013F-$0142 (Product code - 4 ASCII characters, assigned by Nintendo, just leave blank)

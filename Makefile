@@ -1,4 +1,4 @@
-TARGET_NAME = hello_world
+TARGET_NAME = ultimate_checkers
 
 ASM = rgbasm
 ASMFLAGS = -i include/ -i build/
