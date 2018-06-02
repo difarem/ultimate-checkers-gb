@@ -112,24 +112,7 @@ LOAD_MAP_LOOP::
 
 ; Start of tile array.
 HELLO_TILES::
-DB $00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00
-DB $C6,$C6,$C6,$C6,$C6,$C6,$FE,$FE
-DB $FE,$FE,$C6,$C6,$C6,$C6,$C6,$C6
-DB $FE,$FE,$FE,$FE,$80,$80,$F8,$F8
-DB $F8,$F8,$80,$80,$FE,$FE,$FE,$FE
-DB $C0,$C0,$C0,$C0,$C0,$C0,$C0,$C0
-DB $C0,$C0,$C0,$C0,$FE,$FE,$FE,$FE
-DB $7C,$7C,$FE,$FE,$C6,$C6,$C6,$C6
-DB $C6,$C6,$C6,$C6,$FE,$FE,$7C,$7C
-DB $C6,$C6,$C6,$C6,$C6,$C6,$C6,$C6
-DB $D6,$D6,$D6,$D6,$FE,$FE,$6C,$6C
-DB $FC,$FC,$FE,$FE,$C6,$C6,$FC,$FC
-DB $FC,$FC,$C6,$C6,$C6,$C6,$C6,$C6
-DB $FC,$FC,$FE,$FE,$C6,$C6,$C6,$C6
-DB $C6,$C6,$C6,$C6,$FE,$FE,$FC,$FC
-DB $6C,$6C,$6C,$6C,$6C,$6C,$6C,$6C
-DB $6C,$6C,$6C,$6C,$00,$00,$6C,$6C
+INCBIN "gfx/hello_world.2bpp"
 
 ;************************************************************
 ;* tile map
@@ -137,7 +120,4 @@ DB $6C,$6C,$6C,$6C,$00,$00,$6C,$6C
 SECTION "Map",ROM0
 
 HELLO_MAP::
-DB $01,$02,$03,$03,$04,$00,$05,$04,$06,$03,$07,$08
-
-
-;*** End Of File ***
+INCBIN "gfx/hello_world.tilemap"
