@@ -28,6 +28,8 @@
     SECTION "Global State",WRAM0
 _cursor_pos: ; %xxxxyyyy
     DS 1
+_animation_timer:
+    DS 1
 
 
 ;****************************************************************************************************************************************************
@@ -110,13 +112,36 @@ Start::
 
 ; MAIN LOOP
 Loop::
-	halt
-	nop
+    ; waits for v-blank, ensuring the main loop runs 60 times each second
     call WAIT_VBLANK
 
+    ; update animation timer
+    ld hl,_animation_timer
+    inc [hl]
+    ; handle animations
+    ld  a,0
+    cp  [hl]
+    push hl
+    ld  b,11 ; blink up
+    call z,cursor_blink
+    pop hl
+    ld  a,128
+    cp  [hl]
+    ld  b,12 ; blink down
+    call z,cursor_blink
 
+	jr Loop
 
-	jp Loop
+cursor_blink:
+    ld  hl,$FE92
+    ld  [hl],b
+    ld  hl,$FE96
+    ld  [hl],b
+    ld  hl,$FE9A
+    ld  [hl],b
+    ld  hl,$FE9E
+    ld  [hl],b
+    ret
 
 ;***************************************************************
 ;* Subroutines
