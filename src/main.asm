@@ -26,8 +26,8 @@
 
 ; global state
     SECTION "Global State",WRAM0
-_cursor_pos: ; %xxxxyyyy
-    DS 1
+_cursor_pos:
+    DS 2
 _animation_timer:
     DS 1
 
@@ -68,7 +68,9 @@ Start::
 
     ; set the cursor to the upper left corner
     ld  hl,_cursor_pos
-    ld  [hl],0
+    ld  [hl],0      ; x position
+    inc hl
+    ld  [hl],0      ; y position
 
     ; init cursor
     ld  hl,$FE90
@@ -133,6 +135,13 @@ Loop::
 	jr Loop
 
 cursor_blink:
+    ld  hl,_cursor_pos
+    inc [hl]
+
+    push bc
+    call cursor_update
+    pop bc
+
     ld  hl,$FE92
     ld  [hl],b
     ld  hl,$FE96
@@ -141,6 +150,69 @@ cursor_blink:
     ld  [hl],b
     ld  hl,$FE9E
     ld  [hl],b
+    ret
+
+cursor_update:
+    ld  hl,_cursor_pos
+    ld  b,[hl]          ; load x position to B
+    inc hl
+    ld  c,[hl]          ; load y position to C
+
+    rlc b
+    rlc b
+    rlc b
+    rlc b
+    rlc c
+    rlc c
+    rlc c
+    rlc c       ; multiply the positions by 16
+
+    ld  hl,$FE90        ; update upper left corner, y position
+    ld  a,c
+    add a,24
+    ld  [hl],a          ; write update
+
+    inc hl              ; upper left corner, x position
+    ld  a,b
+    add a,24
+    ld  [hl],a          ; write update
+
+    inc hl              ; upper right corner, y position
+    inc hl
+    inc hl
+    ld  a,c
+    add a,24
+    ld  [hl],a          ; write update
+
+    inc hl              ; upper right corner, x position
+    ld  a,b
+    add a,32
+    ld  [hl],a          ; write update
+
+    inc hl              ; lower left corner, y position
+    inc hl
+    inc hl
+    ld  a,c
+    add a,32
+    ld  [hl],a          ; write update
+
+    inc hl              ; lower left corner, x position
+    ld  a,b
+    add a,24
+    ld  [hl],a          ; write update
+
+    inc hl              ; lower right corner, y position
+    inc hl
+    inc hl
+    ld  a,c
+    add a,32
+    ld  [hl],a          ; write update
+
+    inc hl              ; lower right corner, x position
+    ld  a,b
+    add a,32
+    ld  [hl],a          ; you get the idea
+
     ret
 
 ;***************************************************************
