@@ -31,6 +31,12 @@ _cursor_pos:
 _animation_timer:
     DS 1
 
+; joypad state on the last vblank period
+_last_button_keys:
+    DS 1
+_last_direction_keys:
+    DS 1
+
 
 ;****************************************************************************************************************************************************
 ;*	Program Start
@@ -112,10 +118,45 @@ Start::
 	ld	a,%10010011
 	ldh	[rLCDC],a	;turn on the LCD, BG, sprites, etc
 
+    ; init joypad state
+    ld  a,%00010000
+    ldh [rP1],a   ; request button keys
+    ldh a,[rP1]   ; read button keys
+    ld  hl,_last_button_keys
+    ld  [hl],a      ; write to memory
+    
+    ld  a,%00100000
+    ldh [rP1],a   ; same for direction keys
+    ldh a,[rP1]   ; read direction keys
+    inc hl
+    ld  [hl],a      ; again, write to memory
+
 ; MAIN LOOP
 Loop::
-    ; waits for v-blank, ensuring the main loop runs 60 times each second
+    ; wait for v-blank, ensuring the main loop runs 60 times each second
     call WAIT_VBLANK
+
+    ; read input
+    ; first, request direction keys
+    ld  a,%00100000
+    ldh [rP1],a
+    ldh a,[rP1]
+    ld  hl,_last_direction_keys
+    ld  b,[hl]
+    ld  [hl],a
+    ;get newly pressed keys in B
+    xor a,$ff
+    and a,b
+    ld  b,a
+
+    bit 3,b ; down
+    call nz,cursor_down
+    bit 2,b ; up
+    call nz,cursor_up
+    bit 1,b ; left
+    call nz,cursor_left
+    bit 0,b ; right
+    call nz,cursor_right
 
     ; update animation timer
     ld hl,_animation_timer
@@ -135,13 +176,6 @@ Loop::
 	jr Loop
 
 cursor_blink:
-    ld  hl,_cursor_pos
-    inc [hl]
-
-    push bc
-    call cursor_update
-    pop bc
-
     ld  hl,$FE92
     ld  [hl],b
     ld  hl,$FE96
@@ -151,6 +185,41 @@ cursor_blink:
     ld  hl,$FE9E
     ld  [hl],b
     ret
+
+cursor_down:
+    ld  hl,_cursor_pos+1
+    inc [hl]
+    ld  a,8
+    cp  a,[hl]
+    jr  nz,cursor_update
+    ld  [hl],0
+    jr  cursor_update
+
+cursor_up:
+    ld  hl,_cursor_pos+1
+    ld  a,[hl]
+    dec [hl]
+    and a,a
+    jr  nz,cursor_update
+    ld  [hl],7
+    jr  cursor_update
+
+cursor_right:
+    ld  hl,_cursor_pos
+    inc [hl]
+    ld  a,8
+    cp  a,[hl]
+    jr  nz,cursor_update
+    ld  [hl],0
+    jr  cursor_update
+
+cursor_left:
+    ld  hl,_cursor_pos
+    ld  a,[hl]
+    dec [hl]
+    and a,a
+    jr  nz,cursor_update
+    ld  [hl],7
 
 cursor_update:
     ld  hl,_cursor_pos
