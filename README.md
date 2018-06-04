@@ -1,7 +1,7 @@
 # Ultimate Checkers
 An experiment.
 
-![screenshot][https://github.com/difarem/ultimate-checkers-gb/raw/master/screenshot.png]
+![screenshot](https://github.com/difarem/ultimate-checkers-gb/raw/master/screenshot.png)
 
 ## Dependencies
 The [RGBDS](https://github.com/rednex/rgbds) suite must be available on the local `PATH`.
