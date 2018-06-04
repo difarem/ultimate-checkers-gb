@@ -30,6 +30,8 @@ _cursor_pos:
     DS 2
 _animation_timer:
     DS 1
+_board:         ; 8 columns 4 rows
+    DS 8*4      ; contains pointers to OAM ($FE00+x, $FF is empty)
 
 ; joypad state on the last vblank period
 _last_button_keys:
@@ -62,15 +64,8 @@ Start::
 
     ld  hl,$FF48
     ld  [hl],%11100100 ; load sprite palette
-    ; draws a single white piece
-    ld  hl,$FE00
-    ld  [hl],44      ; sprite y position
-    inc hl
-    ld  [hl],28     ; sprite x position
-    inc hl
-    ld  [hl],9      ; sprite tile offset
-    inc hl
-    ld  [hl],0      ; sprite attributes
+
+    call init_board
 
     ; set the cursor to the upper left corner
     ld  hl,_cursor_pos
@@ -284,6 +279,30 @@ cursor_update:
 
     ret
 
+init_board:
+    ; first, set the board memory
+    ld  hl,_board
+    ld  de,INITIAL_BOARD_RAM
+    ld  b,32
+ib_ram:
+    ld  a,[de]
+    ld  [hl+],a
+    inc de
+    dec b
+    jr  nz,ib_ram
+
+    ; now initialize the piece attributes
+    ld  hl,$FE00
+    ld  b,24*4
+ib_oam:
+    ld  a,[de]
+    ld  [hl+],a
+    inc de
+    dec b
+    jr  nz,ib_oam
+
+    ret
+
 ;***************************************************************
 ;* Subroutines
 ;***************************************************************
@@ -336,6 +355,14 @@ LOAD_BOARD_ROW::
     add hl,bc
     dec d
     jr  nz,LOAD_BOARD_ROW
+    
+    ; draw additional tiles
+    ld  hl,_SCRN0   ; top player indicator
+    ld  [hl],9
+
+    ld  hl,_SCRN0+(32*17)+19
+    ld  [hl],10     ; bottom player indicator
+
     ret
 LOAD_BOARD_UPPER_LOOP::
     ld a,d
@@ -396,3 +423,40 @@ SECTION "Map",ROM0
 
 HELLO_MAP::
 INCBIN "gfx/hello_world.tilemap"
+
+SECTION "Initial Board",ROM0
+INITIAL_BOARD_RAM::
+DB  0,1,2,3,4,5,6,7,8,9,10,11
+DB  255,255,255,255,255,255,255,255
+DB  12,13,14,15,16,17,18,19,20,21,22,23
+INITIAL_BOARD_OAM::
+DB  28,44,9,0
+DB  28,76,9,0
+DB  28,108,9,0
+DB  28,140,9,0
+
+DB  44,28,9,0
+DB  44,60,9,0
+DB  44,92,9,0
+DB  44,124,9,0
+
+DB  60,44,9,0
+DB  60,76,9,0
+DB  60,108,9,0
+DB  60,140,9,0
+
+
+DB  108,28,10,0
+DB  108,60,10,0
+DB  108,92,10,0
+DB  108,124,10,0
+
+DB  124,44,10,0
+DB  124,76,10,0
+DB  124,108,10,0
+DB  124,140,10,0
+
+DB  140,28,10,0
+DB  140,60,10,0
+DB  140,92,10,0
+DB  140,124,10,0
