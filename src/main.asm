@@ -162,6 +162,22 @@ Loop::
     bit 0,b ; right
     call nz,cursor_right
 
+    ; now, handle button keys
+    ld  a,%00010000
+    ldh [rP1],a
+    ldh a,[rP1]
+    ld  hl,_last_direction_keys+1
+    ld  b,[hl]
+    ld  [hl],a
+    xor a,$ff
+    and a,b
+    ld  b,a
+
+    ;bit 3,b ; start
+    ;bit 2,b ; select
+    ;bit 1,b ; B
+    ;bit 0,b ; A
+
     ; update animation timer
     ld hl,_animation_timer
     inc [hl]
