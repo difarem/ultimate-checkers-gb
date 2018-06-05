@@ -32,6 +32,8 @@ _animation_timer:
     DS 1
 _board:         ; 8 columns 4 rows
     DS 8*4      ; contains pointers to OAM ($FE00+x, $FF is empty)
+_turn:
+    DS 1
 
 ; joypad state on the last vblank period
 _last_button_keys:
@@ -67,15 +69,15 @@ Start::
 
     call init_board
 
-    ; set the cursor to the upper left corner
+    ; set the cursor to the lower left corner
     ld  hl,_cursor_pos
     ld  [hl],0      ; x position
     inc hl
-    ld  [hl],0      ; y position
+    ld  [hl],7      ; y position
 
     ; init cursor
     ld  hl,$FE90
-    ld  [hl],24
+    ld  [hl],24+112
     inc hl
     ld  [hl],24
     inc hl
@@ -84,7 +86,7 @@ Start::
     ld  [hl],%00000000
 
     inc hl
-    ld  [hl],24
+    ld  [hl],24+112
     inc hl
     ld  [hl],32
     inc hl
@@ -93,7 +95,7 @@ Start::
     ld  [hl],%00100000
 
     inc hl
-    ld  [hl],32
+    ld  [hl],32+112
     inc hl
     ld  [hl],24
     inc hl
@@ -102,7 +104,7 @@ Start::
     ld  [hl],%01000000
 
     inc hl
-    ld  [hl],32
+    ld  [hl],32+112
     inc hl
     ld  [hl],32
     inc hl
@@ -125,6 +127,13 @@ Start::
     ldh a,[rP1]   ; read direction keys
     inc hl
     ld  [hl],a      ; again, write to memory
+
+    ; init turn counter
+    ld  hl,_turn
+    ld  [hl],0
+    ; bottom player moves first
+    ld  hl,_SCRN0+(17*32)+18
+    ld  [hl],14
 
 ; MAIN LOOP
 Loop::
@@ -152,6 +161,22 @@ Loop::
     call nz,cursor_left
     bit 0,b ; right
     call nz,cursor_right
+
+    ; now, handle button keys
+    ld  a,%00010000
+    ldh [rP1],a
+    ldh a,[rP1]
+    ld  hl,_last_direction_keys+1
+    ld  b,[hl]
+    ld  [hl],a
+    xor a,$ff
+    and a,b
+    ld  b,a
+
+    ;bit 3,b ; start
+    ;bit 2,b ; select
+    ;bit 1,b ; B
+    ;bit 0,b ; A
 
     ; update animation timer
     ld hl,_animation_timer
