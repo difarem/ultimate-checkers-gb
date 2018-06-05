@@ -181,15 +181,13 @@ Loop::
     ; update animation timer
     ld hl,_animation_timer
     inc [hl]
+    ld  a,[hl]
+    swap a
+    and a,%00000011
     ; handle animations
-    ld  a,0
-    cp  [hl]
-    push hl
     ld  b,11 ; blink up
     call z,cursor_blink
-    pop hl
-    ld  a,128
-    cp  [hl]
+    cp  2
     ld  b,12 ; blink down
     call z,cursor_blink
 
