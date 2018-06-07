@@ -175,8 +175,10 @@ Loop::
 
     ;bit 3,b ; start
     ;bit 2,b ; select
-    ;bit 1,b ; B
-    ;bit 0,b ; A
+    bit 1,b ; B
+    call nz,cursor_cancel
+    bit 0,b ; A
+    call nz,cursor_press
 
     ; update animation timer
     ld hl,_animation_timer
@@ -299,6 +301,127 @@ cursor_update:
     ld  a,b
     add a,32
     ld  [hl],a          ; you get the idea
+
+    ret
+
+cursor_cancel:
+    ret
+
+cursor_press:
+    ld  hl,_cursor_pos
+    ld  b,[hl]  ; store the cursor x on B
+    inc hl
+    ld  c,[hl]  ; and the cursor y on C
+    ld  hl,$fe60
+
+    ; are we aligned (cursor on a black tile)?
+    ld  a,b
+    add c
+    bit 0,a
+    ret z
+
+    ; we are aligned
+    ; divide x by two so we can index _board
+    sra b
+    ; i = x + 4y
+    ld  a,c
+    sla a
+    sla a
+    add a,b
+    ; actually index _board
+    ld  d,0
+    ld  e,a
+    ld  hl,_board
+    add hl,de
+    ; is the tile empty?
+    ld  a,255
+    cp  [hl]
+    ; if it is, return
+    ret z
+    ; load the piece's sprite offset
+    ld  d,0
+    ld  e,[hl]
+    ld  hl,$fe00
+    add hl,de
+    inc hl
+    inc hl
+    ld  a,[hl]
+    
+    push hl
+    ; check our team
+    cp  a,9
+    jr  z,cp_top
+
+cp_bottom:
+    ld  hl,_turn
+    bit 0,[hl]  ; is it our turn?
+    pop hl
+    ret nz
+
+    ; D: piece x coordinates
+    ; E: piece y coordinates
+    dec hl
+    ld  d,[hl]
+    dec hl
+    ld  e,[hl]
+
+    ; it is bottom's turn
+    ; check where we can move to
+    ; are we on the right side of the board? (B == 0 and C%2 == 1)
+    ld  a,b
+    cp  0
+    call nz,cpb_left
+    bit 0,c
+    call z,cpb_left
+    ; are we on the left side of the board?
+    ld  a,3
+    cp  b
+    call nz,cpb_right
+    bit 0,c
+    call nz,cpb_right
+
+    ret
+
+cpb_left:
+    ; draw left piece target
+    ld  hl,$fe60    ; y position
+    ld  a,e
+    sub a,16
+    ld  [hl],a
+    inc hl          ; x position
+    ld  a,d
+    sub a,16
+    ld  [hl],a
+    inc hl          ; sprite offset
+    ld  [hl],15
+    inc hl          ; sprite flags
+    ld  [hl],0
+    ret
+
+cpb_right:
+    ; draw right piece target
+    ld  hl,$fe64    ; y position
+    ld  a,e
+    sub a,16
+    ld  [hl],a
+    inc hl          ; x position
+    ld  a,d
+    add a,16
+    ld  [hl],a
+    inc hl          ; sprite offset
+    ld  [hl],15
+    inc hl          ; sprite flags
+    ld  [hl],0
+    ret
+
+cp_top:
+    ld  hl,_turn
+    bit 0,[hl]  ; is it our turn?
+    pop hl
+    ret z
+
+    ; it is top's turn
+    halt
 
     ret
 
