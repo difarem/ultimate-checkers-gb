@@ -13,7 +13,7 @@ GBA = mgba-qt
 
 SOURCES = src/header.asm src/main.asm
 
-IMAGES = gfx/board.png gfx/hello_world.png
+IMAGES = gfx/board.png
 
 TARGET = build/$(TARGET_NAME).gb
 OBJECTS = $(SOURCES:src/%.asm=build/%.o)
