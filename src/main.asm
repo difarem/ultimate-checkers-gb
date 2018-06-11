@@ -25,40 +25,28 @@ INCLUDE "hardware.inc"
 ;*  tileset  *
 ;*************
 
-HELLO_BLANK     EQU 0
-HELLO_H         EQU 1
-HELLO_E         EQU 2
-HELLO_L         EQU 3
-HELLO_O         EQU 4
-HELLO_W         EQU 5
-HELLO_R         EQU 6
-HELLO_D         EQU 7
-HELLO_BANG      EQU 8
-HELLO_SIZE      EQU 9
+BOARD_tBLANK        EQU 0   ; blank tile
+BOARD_tBG           EQU 1   ; background tile
+BOARD_tTILE_WTL     EQU 2   ; white board tile, top left corner
+BOARD_tTILE_WTR     EQU 3   ; white top right
+BOARD_tTILE_WBL     EQU 4   ; white bottom left
+BOARD_tTILE_WBR     EQU 5   ; white bottom right
+BOARD_tTILE_BTL     EQU 6   ; black top left
+BOARD_tTILE_BTR     EQU 7   ; black top right
+BOARD_tTILE_BBL     EQU 8   ; black bottom left
+BOARD_tTILE_BBR     EQU 9   ; black bottom right
+BOARD_tPIECE_T      EQU 10  ; top player's piece
+BOARD_tPIECE_B      EQU 11  ; bottom player's piece
+BOARD_tCURSOR_1     EQU 12  ; cursor, animation state 1
+BOARD_tCURSOR_2     EQU 13  ; cursor, animation state 2
+BOARD_tINDICATOR_T  EQU 14  ; top player turn indicator
+BOARD_tINDICATOR_B  EQU 15  ; bottom player turn indicator
+BOARD_tPIECE_TARGET EQU 16  ; move target location indicator
+BOARD_SIZE          EQU 17
 
     SECTION "Tiles", ROM0
-HELLO_TILES::
-    INCBIN "gfx/hello_world.2bpp"
-
-
-;*************
-;*  tilemap  *
-;*************
-
-    SECTION "Map",ROM0
-HELLO_MAP::
-    DB  HELLO_H
-    DB  HELLO_E
-    DB  HELLO_L
-    DB  HELLO_L
-    DB  HELLO_O
-    DB  HELLO_BLANK
-    DB  HELLO_W
-    DB  HELLO_O
-    DB  HELLO_R
-    DB  HELLO_L
-    DB  HELLO_D
-    DB  HELLO_BANG
+BOARD_TILES::
+    INCBIN "gfx/board.2bpp"
 
 
 ;*******************
@@ -76,7 +64,6 @@ Start::
 
     call ClearMap       ; clear the BG map
     call LoadTiles      ; load up our tiles
-    call LoadMap        ; load up our map
 
     ld  a,%11100100     ; load a normal palette up 11 10 01 00 - dark->light
     ldh [rBGP],a        ; load the palette
@@ -109,7 +96,7 @@ ClearMap::
 
     ld  bc,32*32            ; we have 32x32 tiles to clear, so we'll need a counter
 ClearMap_Loop:
-    ld  a,HELLO_BLANK       ; load our blank tile offset into A...
+    ld  a,BOARD_tBG         ; load our background tile offset into A...
     ld  [hl+],a             ; load A into the address at HL and increment HL
     dec bc                  ; decrement our counter
     ld  a,b                 ; to see if BC is zero, we check both B...
@@ -120,10 +107,10 @@ ClearMap_Loop:
 
 
 LoadTiles::
-    ld  hl,HELLO_TILES
+    ld  hl,BOARD_TILES
     ld  de,_VRAM
 
-    ld  bc,HELLO_SIZE*16     ; we have 9 tiles and each tile takes 16 bytes
+    ld  bc,BOARD_SIZE*16
 LoadTiles_Loop:
     ld  a,[hl+]             ; get a byte from our tiles, and increment.
     ld  [de],a              ; put that byte in VRAM and
@@ -132,20 +119,5 @@ LoadTiles_Loop:
     ld  a,b                 ; if b or c != 0,
     or  c                   ;
     jr  nz,LoadTiles_Loop   ; then loop.
-
-    ret                     ; done
-
-
-LoadMap::
-    ld  hl,HELLO_MAP    ; our little map
-    ld  de,_SCRN0       ; where our map goes
-
-    ld  c,12            ; since we are only loading 12 tiles
-LoadMap_Loop:
-    ld  a,[hl+]             ; get a byte of the map and inc hl
-    ld  [de],a              ; put the byte at de
-    inc de                  ; duh...
-    dec c                   ; decrement our counter
-    jr  nz,LoadMap_Loop     ; and of the counter != 0 then loop
 
     ret                     ; done
