@@ -173,4 +173,9 @@ DBB_Next:
     dec b                       ; decrement our row counter
     jr  nz,DrawBoard_Row        ; and loop
 
+    ld  hl,_SCRN0               ; load into HL the address of the top left corner
+    ld  [hl],BOARD_tPIECE_T     ; draw the top player's piece
+    ld  hl,_SCRN0+(32*17)+19    ; same for the bottom player at the bottom right corner
+    ld  [hl],BOARD_tPIECE_B
+
     ret     ; done
