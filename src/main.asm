@@ -64,6 +64,7 @@ Start::
 
     call ClearMap       ; clear the BG map
     call LoadTiles      ; load up our tiles
+    call DrawBoard      ; draw the board
 
     ld  a,%11100100     ; load a normal palette up 11 10 01 00 - dark->light
     ldh [rBGP],a        ; load the palette
@@ -121,3 +122,55 @@ LoadTiles_Loop:
     jr  nz,LoadTiles_Loop   ; then loop.
 
     ret                     ; done
+
+
+DrawBoard::
+    ld  hl,_SCRN0+34            ; load the address of the bg map into HL, with an offset so it isn't draw directly from the corner
+    ld  de,16                   ; offset between display rows
+
+    ld  b,8                     ; set up the row counter (8 rows)
+DrawBoard_Row:
+    ld  c,8                     ; and for each row, the column counter (8 columns)
+    ld  a,b
+DrawBoard_Top:                  ; first, draw the top part of each board tile
+    inc a                       ; A = B+(8-C)
+    bit 0,a                     ; depending on the parity of A...
+    jr  nz,DBT_Black            ; ...draw the tile black
+    ld  [hl],BOARD_tTILE_WTL    ; or white
+    inc hl
+    ld  [hl],BOARD_tTILE_WTR
+    jr  DBT_Next                ; skip over the code dealing with black tiles
+DBT_Black:
+    ld  [hl],BOARD_tTILE_BTL
+    inc hl
+    ld  [hl],BOARD_tTILE_BTR
+DBT_Next:
+    inc hl
+    dec c                       ; decrement our counter...
+    jr  nz,DrawBoard_Top        ; ...and loop while it doesn't reach zero
+
+    add hl,de                   ; move to the next display row
+    ld  c,8                     ; set up the column counter again to draw the bottom part
+    ld  a,b
+DrawBoard_Bottom:
+    inc a
+    bit 0,a                     ; check the parity of A again
+    jr  nz,DBB_Black
+    ld  [hl],BOARD_tTILE_WBL    ; draw the tile black
+    inc hl
+    ld  [hl],BOARD_tTILE_WBR
+    jr  DBB_Next
+DBB_Black:
+    ld  [hl],BOARD_tTILE_BBL    ; or black
+    inc hl
+    ld  [hl],BOARD_tTILE_BBR
+DBB_Next:
+    inc hl
+    dec c
+    jr  nz,DrawBoard_Bottom
+
+    add hl,de                   ; move to the next display row
+    dec b                       ; decrement our row counter
+    jr  nz,DrawBoard_Row        ; and loop
+
+    ret     ; done
