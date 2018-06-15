@@ -23,6 +23,10 @@ _cursor_y:
     DS  1
 _cursor_x:
     DS  1
+_last_button_input:     ; these two locations store the input state of the previous tick
+    DS  1
+_last_direction_input:
+    DS  1
 
 
 ;****************
@@ -88,6 +92,35 @@ Start::
 MainLoop:
     call WaitVBlank     ; wait for v-blank, ensuring this loop is executed around 60 times per second
 
+    ;*  READ INPUT  *
+    ; read the button keys first
+    ; TODO
+
+    ; and now for the direction keys
+    ld  a,%00100000                 ; select the direction keys
+    ld  [rP1],a
+    ld  a,[rP1]                     ; and read them back
+    ld  hl,_last_direction_input    ; compare them with last tick's
+    ld  b,a                         ; save...
+    xor a,$ff                       ; invert...
+    and a,[hl]                      ; compare...
+    ld  [hl],b                      ; and store
+    ld  b,a
+
+    ld  hl,_cursor_x
+    bit 1,b         ; LEFT key
+    call nz,MoveCursorDec
+    bit 0,b         ; RIGHT key
+    call nz,MoveCursorInc
+    dec hl
+    bit 3,b         ; DOWN key
+    call nz,MoveCursorInc
+    bit 2,b         ; UP key
+    call nz,MoveCursorDec
+
+    call UpdateCursor   ; update the cursor position
+
+    ;*  ANIMATE SPRITES  *
     ld  hl,_timer       ; update the animation timer
     inc [hl]
     ld  a,[hl]
@@ -257,5 +290,80 @@ AnimateCursor:
     ld  [hl],b
     add hl,de                   ; lower right corner
     ld  [hl],b
+
+    ret
+
+MoveCursorInc:
+    inc [hl]
+    ld  a,8
+    cp  [hl]
+    ret nz
+    ld  [hl],0
+    ret
+
+MoveCursorDec:
+    ld  a,[hl]
+    or  a,a
+    jr  z,MCD_Wrap
+    dec [hl]
+    ret
+MCD_Wrap:
+    ld  [hl],7
+    ret
+
+UpdateCursor:
+    ld  a,[hl+]     ; convert the cursor y location to sprite y coordinates
+    sla a
+    sla a
+    sla a
+    sla a
+    add a,24
+    ld  b,a         ; store that in b
+
+    ld  a,[hl]      ; do the same for x
+    sla a
+    sla a
+    sla a
+    sla a
+    add a,24
+    ld  c,a         ; and store it in c
+
+    ld  de,_OAMRAM+$90      ; update the upper left corner of the cursor
+    ld  a,b
+    ld  [de],a
+    inc de
+    ld  a,c
+    ld  [de],a
+
+    inc de                  ; upper right
+    inc de
+    inc de
+    ld  a,b
+    ld  [de],a
+    inc de
+    ld  a,c
+    add a,8
+    ld  [de],a
+
+    inc de                  ; lower left
+    inc de
+    inc de
+    ld  a,b
+    add a,8
+    ld  [de],a
+    inc de
+    ld  a,c
+    ld  [de],a
+
+    inc de                  ; lower right
+    inc de
+    inc de
+    ld  a,b
+    add a,8
+    ld  [de],a
+    inc de
+    ld  a,c
+    add a,8
+    ld  [de],a
 
     ret
