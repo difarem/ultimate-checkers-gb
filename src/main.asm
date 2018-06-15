@@ -10,7 +10,42 @@ INCLUDE "hardware.inc"
 ;***************************
 ;*  user data (constants)  *
 ;***************************
+    SECTION "Constants",ROM0
+INITIAL_BOARD_WRAM:
+    DB  $ff,$00,$ff,$04,$ff,$08,$ff,$0c
+    DB  $10,$ff,$14,$ff,$18,$ff,$1c,$ff
+    DB  $ff,$20,$ff,$24,$ff,$28,$ff,$2c
+    DB  $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DB  $ff,$ff,$ff,$ff,$ff,$ff,$ff,$ff
+    DB  $30,$ff,$34,$ff,$38,$ff,$3c,$ff
+    DB  $ff,$40,$ff,$44,$ff,$48,$ff,$4c
+    DB  $50,$ff,$54,$ff,$58,$ff,$5c,$ff
+INITIAL_BOARD_OAM:
+    DB  $1c,$2c,10,0
+    DB  $1c,$4c,10,0
+    DB  $1c,$6c,10,0
+    DB  $1c,$8c,10,0
+    DB  $2c,$1c,10,0
+    DB  $2c,$3c,10,0
+    DB  $2c,$5c,10,0
+    DB  $2c,$7c,10,0
+    DB  $3c,$2c,10,0
+    DB  $3c,$4c,10,0
+    DB  $3c,$6c,10,0
+    DB  $3c,$8c,10,0
 
+    DB  $6c,$1c,11,0
+    DB  $6c,$3c,11,0
+    DB  $6c,$5c,11,0
+    DB  $6c,$7c,11,0
+    DB  $7c,$2c,11,0
+    DB  $7c,$4c,11,0
+    DB  $7c,$6c,11,0
+    DB  $7c,$8c,11,0
+    DB  $8c,$1c,11,0
+    DB  $8c,$3c,11,0
+    DB  $8c,$5c,11,0
+    DB  $8c,$7c,11,0
 
 ;***************************
 ;*  user data (variables)  *
@@ -27,6 +62,8 @@ _last_button_input:     ; these two locations store the input state of the previ
     DS  1
 _last_direction_input:
     DS  1
+_board:                 ; array of OAM offsets, or $ff for empty tiles
+    DS  64
 
 
 ;****************
@@ -78,10 +115,12 @@ Start::
     call LoadTiles      ; load up our tiles
     call DrawBoard      ; draw the board
 
+    call InitBoard      ; initialize the board state
     call InitCursor     ; initialize the cursor
 
     ld  a,%11100100     ; load a normal palette up 11 10 01 00 - dark->light
     ldh [rBGP],a        ; load the palette
+    ldh [rOBP0],a       ; for sprites as well
 
     ld  a,%10010011     ; = $91 
     ldh [rLCDC],a       ; turn on the LCD, BG, sprites, etc
@@ -235,6 +274,25 @@ DBB_Next:
     ld  [hl],BOARD_tPIECE_B
 
     ret     ; done
+
+InitBoard:
+    ld  hl,_board
+    ld  bc,INITIAL_BOARD_WRAM
+    ld  d,64
+    call IB_Copy
+    ld  hl,_OAMRAM
+    ld  d,4*24
+    call IB_Copy
+
+    ret
+
+IB_Copy:
+    ld  a,[bc]
+    inc bc
+    ld  [hl+],a
+    dec d
+    jr  nz,IB_Copy
+    ret
 
 InitCursor:
     ld  hl,_cursor_y            ; reset the cursor position to the lower left corner of the board
