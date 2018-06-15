@@ -16,6 +16,14 @@ INCLUDE "hardware.inc"
 ;*  user data (variables)  *
 ;***************************
 
+    SECTION "Variables",WRAM0
+_timer:                 ; animation timer
+    DS  1
+_cursor_y:
+    DS  1
+_cursor_x:
+    DS  1
+
 
 ;****************
 ;*  video data  *
@@ -66,15 +74,30 @@ Start::
     call LoadTiles      ; load up our tiles
     call DrawBoard      ; draw the board
 
+    call InitCursor     ; initialize the cursor
+
     ld  a,%11100100     ; load a normal palette up 11 10 01 00 - dark->light
     ldh [rBGP],a        ; load the palette
 
-    ld  a,%10010001     ; = $91 
-    ldh [rLCDC],a       ; turn on the LCD, BG, etc
+    ld  a,%10010011     ; = $91 
+    ldh [rLCDC],a       ; turn on the LCD, BG, sprites, etc
+
+    ld  hl,_timer       ; initialize the animation timer
+    ld  [hl],0
 
 MainLoop:
     call WaitVBlank     ; wait for v-blank, ensuring this loop is executed around 60 times per second
-    halt                ; the actual main loop would go here
+
+    ld  hl,_timer       ; update the animation timer
+    inc [hl]
+    ld  a,[hl]
+
+    and a,$7f           ; check the 7 lower bits
+    ld  b,12            ; depending on its value, animate the cursor
+    call z,AnimateCursor; is it zero?
+    cp  a,$40           ; is it 64?
+    ld  b,13
+    call z,AnimateCursor
 
     jr MainLoop
 
@@ -135,7 +158,7 @@ DrawBoard_Row:
 DrawBoard_Top:                  ; first, draw the top part of each board tile
     inc a                       ; A = B+(8-C)
     bit 0,a                     ; depending on the parity of A...
-    jr  nz,DBT_Black            ; ...draw the tile black
+    jr  z,DBT_Black            ; ...draw the tile black
     ld  [hl],BOARD_tTILE_WTL    ; or white
     inc hl
     ld  [hl],BOARD_tTILE_WTR
@@ -155,7 +178,7 @@ DBT_Next:
 DrawBoard_Bottom:
     inc a
     bit 0,a                     ; check the parity of A again
-    jr  nz,DBB_Black
+    jr  z,DBB_Black
     ld  [hl],BOARD_tTILE_WBL    ; draw the tile black
     inc hl
     ld  [hl],BOARD_tTILE_WBR
@@ -179,3 +202,60 @@ DBB_Next:
     ld  [hl],BOARD_tPIECE_B
 
     ret     ; done
+
+InitCursor:
+    ld  hl,_cursor_y            ; reset the cursor position to the lower left corner of the board
+    ld  [hl],7
+    inc hl
+    ld  [hl],0
+
+    ld  hl,_OAMRAM+$90          ; draw the upper left corner of the cursor
+    ld  [hl],136                ; y coordinate
+    inc hl
+    ld  [hl],24                 ; x coordinate
+    inc hl
+    ld  [hl],12                 ; sprite offset
+    inc hl
+    ld  [hl],%00000000          ; sprite flags
+
+    inc hl                      ; upper right corner
+    ld  [hl],136
+    inc hl
+    ld  [hl],32
+    inc hl
+    ld  [hl],12
+    inc hl
+    ld  [hl],%00100000          ; flip horizontally
+
+    inc hl                      ; lower left corner
+    ld  [hl],144
+    inc hl
+    ld  [hl],24
+    inc hl
+    ld  [hl],12
+    inc hl
+    ld  [hl],%01000000          ; flip vertically
+
+    inc hl                      ; lower right corner
+    ld  [hl],144
+    inc hl
+    ld  [hl],32
+    inc hl
+    ld  [hl],12
+    inc hl
+    ld  [hl],%01100000          ; flip vertically and horizontally
+
+    ret
+
+AnimateCursor:
+    ld  de,4
+    ld  hl,_OAMRAM+$92          ; animate the upper left corner
+    ld  [hl],b
+    add hl,de                   ; upper right corner
+    ld  [hl],b
+    add hl,de                   ; lower left corner
+    ld  [hl],b
+    add hl,de                   ; lower right corner
+    ld  [hl],b
+
+    ret
