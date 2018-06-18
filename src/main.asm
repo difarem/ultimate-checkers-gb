@@ -64,6 +64,8 @@ _last_direction_input:
     DS  1
 _board:                 ; array of OAM offsets, or $ff for empty tiles
     DS  64
+_state:
+    DS  1               ; 0: moving cursor; 1: moving piece
 
 
 ;****************
@@ -116,6 +118,10 @@ Start::
     call DrawBoard      ; draw the board
 
     call InitBoard      ; initialize the board state
+    
+    ld  hl,_state       ; hl = _state
+    ld  [hl],0          ; game state is 0 (moving cursor)
+
     call InitCursor     ; initialize the cursor
 
     ld  a,%11100100     ; load a normal palette up 11 10 01 00 - dark->light
@@ -146,6 +152,11 @@ MainLoop:
     ld  [hl],b                      ; and store
     ld  b,a
 
+    ld  hl,_state                   ; check the game status
+    bit 0,[hl]                      ; 0 for moving the cursor, 1 for moving a piece
+    jr  nz,ML_DK_Piece
+
+ML_DK_Cursor:                   ; move the cursor
     ld  hl,_cursor_x
     bit 1,b         ; LEFT key
     call nz,MoveCursorDec
@@ -158,6 +169,10 @@ MainLoop:
     call nz,MoveCursorDec
 
     call UpdateCursor   ; update the cursor position
+    jr  ML_DK_Next
+ML_DK_Piece:                    ; move the piece
+
+ML_DK_Next:
 
     ;*  ANIMATE SPRITES  *
     ld  hl,_timer       ; update the animation timer
@@ -284,16 +299,13 @@ InitBoard:
     call IB_Copy
     ld  hl,_OAMRAM
     ld  d,4*24
-    call IB_Copy
-
-    ret
-
 IB_Copy:
     ld  a,[bc]
     inc bc
     ld  [hl+],a
     dec d
     jr  nz,IB_Copy
+
     ret
 
 InitCursor:
