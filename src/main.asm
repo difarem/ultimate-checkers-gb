@@ -52,6 +52,8 @@ INITIAL_BOARD_OAM:
 ;***************************
 
     SECTION "Variables",WRAM0
+_board:                 ; array of OAM offsets, or $ff for empty tiles
+    DS  64
 _timer:                 ; animation timer
     DS  1
 _cursor_y:
@@ -62,10 +64,10 @@ _last_button_input:     ; these two locations store the input state of the previ
     DS  1
 _last_direction_input:
     DS  1
-_board:                 ; array of OAM offsets, or $ff for empty tiles
-    DS  64
 _state:
     DS  1               ; 0: moving cursor; 1: moving piece
+_turn:
+    DS  1               ; even: bottom; odd: top
 
 
 ;****************
@@ -121,6 +123,8 @@ Start::
     
     ld  hl,_state       ; hl = _state
     ld  [hl],0          ; game state is 0 (moving cursor)
+    inc hl              ; hl = _turn
+    ld  [hl],0          ; turn 0
 
     call InitCursor     ; initialize the cursor
 
@@ -139,8 +143,30 @@ MainLoop:
 
     ;*  READ INPUT  *
     ; read the button keys first
-    ; TODO
+    ld  a,%00010000                 ; select the button keys
+    ld  [rP1],a
+    ld  a,[rP1]                     ; and read them back
+    ld  hl,_last_button_input       ; compare them with last tick's
+    ld  b,a                         ; save...
+    xor a,$ff                       ; invert...
+    and a,[hl]                      ; compare...
+    ld  [hl],b                      ; and store
+    ld  b,a
 
+    ld  hl,_state                   ; check the game status
+    bit 0,[hl]                      ; 0 for selecting a piece, 1 for moving it
+    jr  nz, ML_BK_Piece
+
+ML_BK_Cursor:                   ; select a piece
+    bit 0,b         ; A button
+    call nz,SelectPiece
+
+    jr  ML_BK_Next
+
+ML_BK_Piece:                    ; move the piece
+    halt
+
+ML_BK_Next:
     ; and now for the direction keys
     ld  a,%00100000                 ; select the direction keys
     ld  [rP1],a
@@ -171,6 +197,7 @@ ML_DK_Cursor:                   ; move the cursor
     call UpdateCursor   ; update the cursor position
     jr  ML_DK_Next
 ML_DK_Piece:                    ; move the piece
+    halt
 
 ML_DK_Next:
 
@@ -364,6 +391,117 @@ AnimateCursor:
     ld  [hl],b
 
     ret
+
+SelectPiece:
+    ; load the current cursor position
+    ; (b,c) = (_cursor_y,_cursor_x)
+    ld  hl,_cursor_y
+    ld  b,[hl]
+    inc hl
+    ld  c,[hl]
+
+    ; make A the current _board offset
+    ld  a,b
+    sla a           ; A = 8b + c
+    sla a
+    sla a
+    add a,c
+
+    ; index _board at HL
+    ld  hl,_board
+    add a,l
+    ld  l,a
+    ; load the OAM offset
+    ld  a,[hl]
+    ; is the tile empty?
+    cp  a,$ff
+    ; return if it is
+    ret z
+
+    ; load the piece's OAM address to HL
+    ld  d,0
+    ld  e,a
+    ld  hl,_OAMRAM
+    add hl,de
+
+    push hl
+    ld  hl,_turn                ; load the current turn
+    bit 0,[hl]                  ; check who our current player is
+    pop hl
+    jr  nz,SP_Top
+
+SP_Bottom:                  ; bottom player's turn
+    inc hl
+    inc hl
+    ld  a,[hl]              ; check the selected piece's team
+    cp  a,11                ; is it bottom?
+    ret nz                  ; if it's not, return
+    dec hl
+    dec hl
+
+    ; definitely our piece
+    ; can we move LEFT?
+    ld  a,c
+    cp  a,0
+    call nz,SP_DrawTarget_TL    ; we can
+    ; can we move RIGHT?
+    ld  a,c
+    cp  a,7
+    call nz,SP_DrawTarget_TR    ; we can
+
+    ret
+
+SP_Top:                     ; top player's turn
+    ret
+
+SP_DrawTarget_TL:           ; draw the top left target
+    ld  de,_OAMRAM + 24*4
+    
+    ; set the target sprite's y position
+    ld  a,[hl+]
+    sub a,16
+    ld  [de],a
+    ; x position
+    inc de
+    ld  a,[hl]
+    sub a,16
+    ld  [de],a
+    ; sprite offset
+    inc de
+    ld  a,16
+    ld  [de],a
+    ; sprite flags
+    inc de
+    ld  a,0
+    ld  [de],a
+
+    dec hl
+    ret
+
+SP_DrawTarget_TR:           ; draw the top right target
+    ld  de,_OAMRAM + 25*4
+    
+    ; set the target sprite's y position
+    ld  a,[hl+]
+    sub a,16
+    ld  [de],a
+    ; x position
+    inc de
+    ld  a,[hl]
+    add a,16
+    ld  [de],a
+    ; sprite offset
+    inc de
+    ld  a,16
+    ld  [de],a
+    ; sprite flags
+    inc de
+    ld  a,0
+    ld  [de],a
+
+    dec hl
+    ret
+
 
 MoveCursorInc:
     inc [hl]
